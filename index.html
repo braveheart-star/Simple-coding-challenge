@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        #itemsContainer {
+            margin: 20px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-height: 100px;
+        }
+        .item {
+            padding: 10px;
+            margin: 5px 0;
+            background-color: #f5f5f5;
+            border-radius: 3px;
+        }
+        .item-id {
+            font-weight: bold;
+            color: #666;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        #itemInput {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        #addButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #addButton:hover {
+            background-color: #45a049;
+        }
+        #addButton:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <h1>Item List</h1>
+    
+    <div id="itemsContainer">
+        <p>Loading items...</p>
+    </div>
+    
+    <div class="input-group">
+        <input type="text" id="itemInput" placeholder="Enter item name">
+        <button id="addButton" onclick="addItem()">Add Item</button>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/items';
+        const itemsContainer = document.getElementById('itemsContainer');
+        const itemInput = document.getElementById('itemInput');
+        const addButton = document.getElementById('addButton');
+
+        // Fetch and display items on page load
+        async function loadItems() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch items');
+                }
+                const items = await response.json();
+                displayItems(items);
+            } catch (error) {
+                itemsContainer.innerHTML = `<p style="color: red;">Error loading items: ${error.message}</p>`;
+                console.error('Error:', error);
+            }
+        }
+
+        // Display items in the container
+        function displayItems(items) {
+            if (items.length === 0) {
+                itemsContainer.innerHTML = '<p>No items yet. Add one above!</p>';
+                return;
+            }
+
+            itemsContainer.innerHTML = items.map(item => 
+                `<div class="item">
+                    <span class="item-id">ID: ${item.id}</span> - ${item.name}
+                </div>`
+            ).join('');
+        }
+
+        // Add new item
+        async function addItem() {
+            const name = itemInput.value.trim();
+            
+            if (!name) {
+                alert('Please enter an item name');
+                return;
+            }
+
+            // Disable button during request
+            addButton.disabled = true;
+            addButton.textContent = 'Adding...';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: name })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to add item');
+                }
+
+                const newItem = await response.json();
+                
+                // Clear input
+                itemInput.value = '';
+                
+                // Refresh the items list
+                await loadItems();
+            } catch (error) {
+                alert(`Error adding item: ${error.message}`);
+                console.error('Error:', error);
+            } finally {
+                // Re-enable button
+                addButton.disabled = false;
+                addButton.textContent = 'Add Item';
+            }
+        }
+
+        // Allow Enter key to add item
+        itemInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                addItem();
+            }
+        });
+
+        // Load items when page loads
+        loadItems();
+    </script>
+</body>
+</html>
+
